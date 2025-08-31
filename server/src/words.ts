@@ -1,4 +1,3 @@
-// Minimal curated list for demo. You can expand freely.
 export const WORDS = [
   "APPLE","CRANE","BRAIN","GHOST","MUSIC","LIGHT","CHORD","PLANT","TRACK","WATER",
   "STONE","BRICK","TEETH","CLOUD","SMILE","ANGEL","RIVER","STORM","SWEET","SHARP",

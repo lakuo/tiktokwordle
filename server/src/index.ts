@@ -9,29 +9,28 @@ import { getRandomWord, pickRandomWord, normalizeGuess, evalGuess } from './game
 import { WORDS } from './words.js';
 import type { GuessEvent, StateEvent, RoundWonEvent, RoundTimeoutEvent, OutboundMessage } from './types.js';
 
+console.log(`🎯 TikTok Live Wordle Game Starting...`);
+console.log(`📋 Config: TIKTOK_USERNAME=${process.env.TIKTOK_USERNAME || 'not set'}`);
+
 dotenv.config({ path: '../.env' });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// 🎮 TIKTOK LIVE CONFIGURATION
-console.log(`🎯 TikTok Live Wordle Game Starting...`);
-console.log(`📋 Config: TIKTOK_USERNAME=${process.env.TIKTOK_USERNAME || 'not set'}`);
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 interface GameState {
-  roundActive: boolean;
+  isRoundActive: boolean;
   currentWord: string;
   wordLength: number;
   guesses: GuessEvent[];
   scoreboard: Record<string, number>;
-  users: Record<string, { name: string; avatar: string | null }>; // Track user data
-  roundStartTime: number; // Add round start timestamp
-  roundDuration: number; // Duration in seconds (30)
-  isWaitingForNextRound: boolean; // Track waiting period between rounds
+  users: Record<string, { name: string; avatar: string | null }>;
+  roundStartTime: number;
+  roundDuration: number;
+  isWaitingForNextRound: boolean;
   lastWinner?: {
     id: string;
     name: string;
@@ -42,20 +41,19 @@ interface GameState {
 }
 
 let gameState: GameState = {
-  roundActive: true,
-  currentWord: 'HOUSE', // Initial placeholder, will be replaced
+  isRoundActive: true,
+  currentWord: 'HOUSE',
   wordLength: 5,
   guesses: [],
   scoreboard: {},
   users: {},
   roundStartTime: Date.now(),
-  roundDuration: 30, // 30 seconds per round
+  roundDuration: 30,
   isWaitingForNextRound: false,
 };
 
-let roundTimeoutId: NodeJS.Timeout | null = null;
+let roundTimer: NodeJS.Timeout | null = null;
 
-// 🎯 Initialize first word asynchronously
 async function initializeGame() {
   try {
     gameState.currentWord = await getRandomWord(WORDS, gameState.wordLength);
@@ -66,26 +64,24 @@ async function initializeGame() {
     console.log(`📚 Using fallback word: ${gameState.currentWord}`);
   }
   
-  // Set the initial timeout for the first round
-  roundTimeoutId = setTimeout(() => {
-    if (gameState.roundActive) {
+  roundTimer = setTimeout(() => {
+    if (gameState.isRoundActive) {
       console.log('⏰ Initial round timeout - revealing answer');
       handleRoundTimeout();
     }
   }, gameState.roundDuration * 1000);
 }
 
-// Initialize game on startup
 initializeGame();
 
-const clients = new Set<WebSocket>();
+const websocketClients = new Set<WebSocket>();
 
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
 app.get('/api/state', (req, res) => {
   res.json({
-    roundActive: gameState.roundActive,
+    roundActive: gameState.isRoundActive,
     wordLength: gameState.wordLength,
     guesses: gameState.guesses,
     scoreboard: gameState.scoreboard,
@@ -110,26 +106,25 @@ app.post('/api/new-round', async (req, res) => {
   res.json({ success: true, message: 'New round started', currentWord: gameState.currentWord });
 });
 
-function broadcast(message: OutboundMessage) {
-  const data = JSON.stringify(message);
-  clients.forEach(client => {
+function broadcastMessage(message: OutboundMessage) {
+  const serializedMessage = JSON.stringify(message);
+  websocketClients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
+      client.send(serializedMessage);
     }
   });
 }
 
 async function startNewRound() {
-  // Clear any existing timeout
-  if (roundTimeoutId) {
-    clearTimeout(roundTimeoutId);
-    roundTimeoutId = null;
+  if (roundTimer) {
+    clearTimeout(roundTimer);
+    roundTimer = null;
   }
   
-  gameState.roundActive = true;
+  gameState.isRoundActive = true;
   gameState.isWaitingForNextRound = false;
   gameState.guesses = [];
-  gameState.roundStartTime = Date.now(); // Reset round timer
+  gameState.roundStartTime = Date.now();
   
   try {
     gameState.currentWord = await getRandomWord(WORDS, gameState.wordLength);
@@ -140,17 +135,16 @@ async function startNewRound() {
     console.log(`📚 New round with fallback word: ${gameState.currentWord}`);
   }
   
-  // Set timeout to end round after 30 seconds if no winner
-  roundTimeoutId = setTimeout(() => {
-    if (gameState.roundActive) {
+  roundTimer = setTimeout(() => {
+    if (gameState.isRoundActive) {
       console.log('⏰ Round timeout - revealing answer');
       handleRoundTimeout();
     }
   }, gameState.roundDuration * 1000);
   
-  const stateEvent: StateEvent = {
+  const stateMessage: StateEvent = {
     type: 'state',
-    roundActive: gameState.roundActive,
+    roundActive: gameState.isRoundActive,
     wordLength: gameState.wordLength,
     guesses: gameState.guesses,
     scoreboard: gameState.scoreboard,
@@ -160,85 +154,80 @@ async function startNewRound() {
     lastWinner: gameState.lastWinner,
   };
   
-  broadcast(stateEvent);
+  broadcastMessage(stateMessage);
 }
 
 function handleRoundTimeout() {
   console.log(`⏰ TIMEOUT: Round ended, revealing word: ${gameState.currentWord}`);
-  gameState.roundActive = false;
+  gameState.isRoundActive = false;
   gameState.isWaitingForNextRound = true;
   
-  const timeoutEvent: RoundTimeoutEvent = {
+  const timeoutMessage: RoundTimeoutEvent = {
     type: 'round_timeout',
     word: gameState.currentWord,
     timestamp: Date.now(),
   };
   
-  console.log('📡 Broadcasting timeout event:', timeoutEvent);
-  broadcast(timeoutEvent);
+  console.log('📡 Broadcasting timeout event:', timeoutMessage);
+  broadcastMessage(timeoutMessage);
   
-  // Wait 10 seconds before starting next round
   setTimeout(async () => {
     console.log('🔄 Starting new round after timeout...');
     await startNewRound();
   }, 10000);
 }
 
-function processGuess(username: string, userId: string, avatar: string | null, rawGuess: string) {
-  // Don't process guesses if round is not active or if we're waiting for next round
-  if (!gameState.roundActive || gameState.isWaitingForNextRound) return;
+function processPlayerGuess(username: string, userId: string, avatar: string | null, rawGuess: string) {
+  if (!gameState.isRoundActive || gameState.isWaitingForNextRound) return;
 
-  const guess = normalizeGuess(rawGuess, gameState.wordLength);
-  if (!guess) return;
+  const normalizedGuess = normalizeGuess(rawGuess, gameState.wordLength);
+  if (!normalizedGuess) return;
 
-  // Log valid chat entries only
-  console.log(`💬 Valid guess: ${username} guessed "${guess}"`);
+  console.log(`💬 Valid guess: ${username} guessed "${normalizedGuess}"`);
 
-  // Track user data
   gameState.users[username] = { name: username, avatar };
 
-  const evaluation = evalGuess(gameState.currentWord, guess);
-  const isWin = evaluation.every(e => e.state === 'correct');
+  const guessEvaluation = evalGuess(gameState.currentWord, normalizedGuess);
+  const isCorrectGuess = guessEvaluation.every(evaluation => evaluation.state === 'correct');
 
-  const guessEvent: GuessEvent = {
+  const guessMessage: GuessEvent = {
     type: 'guess',
-    guess,
-    eval: evaluation,
+    guess: normalizedGuess,
+    eval: guessEvaluation,
     user: { id: userId, name: username, avatar },
     timestamp: Date.now(),
   };
 
-  gameState.guesses.push(guessEvent);
-  broadcast(guessEvent);
+  gameState.guesses.push(guessMessage);
+  broadcastMessage(guessMessage);
 
-  if (isWin) {
-    gameState.roundActive = false;
+  if (isCorrectGuess) {
+    gameState.isRoundActive = false;
     gameState.isWaitingForNextRound = true;
     
-    // Clear the timeout since someone won
-    if (roundTimeoutId) {
-      clearTimeout(roundTimeoutId);
-      roundTimeoutId = null;
+    if (roundTimer) {
+      clearTimeout(roundTimer);
+      roundTimer = null;
     }
     
     gameState.scoreboard[username] = (gameState.scoreboard[username] || 0) + 1;
     
-    const winner = { id: userId, name: username, avatar };
+    const winnerData = { id: userId, name: username, avatar };
     gameState.lastWinner = {
-      ...winner,
+      ...winnerData,
       word: gameState.currentWord,
       at: Date.now(),
     };
 
-    const roundWonEvent: RoundWonEvent = {
+    const roundWonMessage: RoundWonEvent = {
       type: 'round_won',
-      winner,
+      winner: winnerData,
       word: gameState.currentWord,
       scoreboard: gameState.scoreboard,
       timestamp: Date.now(),
     };
 
-    broadcast(roundWonEvent);
+    broadcastMessage(roundWonMessage);
 
     setTimeout(async () => {
       await startNewRound();
@@ -246,12 +235,12 @@ function processGuess(username: string, userId: string, avatar: string | null, r
   }
 }
 
-wss.on('connection', (ws) => {
-  clients.add(ws);
+wss.on('connection', (websocket) => {
+  websocketClients.add(websocket);
   
-  const stateEvent: StateEvent = {
+  const stateMessage: StateEvent = {
     type: 'state',
-    roundActive: gameState.roundActive,
+    roundActive: gameState.isRoundActive,
     wordLength: gameState.wordLength,
     guesses: gameState.guesses,
     scoreboard: gameState.scoreboard,
@@ -261,14 +250,13 @@ wss.on('connection', (ws) => {
     lastWinner: gameState.lastWinner,
   };
   
-  ws.send(JSON.stringify(stateEvent));
+  websocket.send(JSON.stringify(stateMessage));
 
-  ws.on('close', () => {
-    clients.delete(ws);
+  websocket.on('close', () => {
+    websocketClients.delete(websocket);
   });
 });
 
-// 🔌 TIKTOK CONNECTION SETUP
 const TIKTOK_USERNAME = process.env.TIKTOK_USERNAME;
 
 if (!TIKTOK_USERNAME) {
@@ -279,9 +267,9 @@ if (!TIKTOK_USERNAME) {
 
 console.log(`🔴 Connecting to TikTok Live: @${TIKTOK_USERNAME}`);
 
-const tiktokConnection = new WebcastPushConnection(TIKTOK_USERNAME);
+const tiktokLiveConnection = new WebcastPushConnection(TIKTOK_USERNAME);
 
-tiktokConnection.connect().then(state => {
+tiktokLiveConnection.connect().then(state => {
   console.log(`✅ Connected to TikTok Live: ${TIKTOK_USERNAME}`);
   console.log(`👀 Listening for chat messages...`);
 }).catch(err => {
@@ -289,20 +277,20 @@ tiktokConnection.connect().then(state => {
   console.log('💡 Tip: Make sure the username is correct and the user is live streaming');
 });
 
-tiktokConnection.on('chat', data => {
-  processGuess(
-    data.nickname,
-    data.userId,
-    data.profilePictureUrl || null,
-    data.comment
+tiktokLiveConnection.on('chat', chatData => {
+  processPlayerGuess(
+    chatData.nickname,
+    chatData.userId,
+    chatData.profilePictureUrl || null,
+    chatData.comment
   );
 });
 
-tiktokConnection.on('error', err => {
+tiktokLiveConnection.on('error', err => {
   console.error('🚨 TikTok error:', err);
 });
 
-tiktokConnection.on('disconnect', () => {
+tiktokLiveConnection.on('disconnect', () => {
   console.log('📱 TikTok stream ended or connection lost');
 });
 

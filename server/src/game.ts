@@ -1,16 +1,15 @@
 import { LetterEval } from "./types.js";
 
-// 🌐 Fetch random word from API
-export async function fetchRandomWord(length: number = 5): Promise<string> {
+export async function fetchRandomWord(targetLength: number = 5): Promise<string> {
   try {
-    const response = await fetch(`https://random-word-api.vercel.app/api?words=1&length=${length}`);
+    const response = await fetch(`https://random-word-api.vercel.app/api?words=1&length=${targetLength}`);
     if (!response.ok) {
       throw new Error(`API responded with status: ${response.status}`);
     }
-    const data = await response.json();
+    const responseData = await response.json();
     
-    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
-      return data[0].toUpperCase();
+    if (Array.isArray(responseData) && responseData.length > 0 && typeof responseData[0] === 'string') {
+      return responseData[0].toUpperCase();
     } else {
       throw new Error('Invalid API response format');
     }
@@ -20,63 +19,59 @@ export async function fetchRandomWord(length: number = 5): Promise<string> {
   }
 }
 
-// 📚 Fallback word picker from local list
-export function pickRandomWord(words: string[], length: number): string {
-  const pool = words.filter(w => w.length === length);
-  if (pool.length === 0) throw new Error(`No words of length ${length}`);
-  const idx = Math.floor(Math.random() * pool.length);
-  return pool[idx].toUpperCase();
+export function pickRandomWord(wordList: string[], targetLength: number): string {
+  const filteredWords = wordList.filter(word => word.length === targetLength);
+  if (filteredWords.length === 0) throw new Error(`No words of length ${targetLength}`);
+  const randomIndex = Math.floor(Math.random() * filteredWords.length);
+  return filteredWords[randomIndex].toUpperCase();
 }
 
-// 🎯 Smart word picker - tries API first, falls back to local list
-export async function getRandomWord(fallbackWords: string[], length: number = 5): Promise<string> {
+export async function getRandomWord(fallbackWordList: string[], targetLength: number = 5): Promise<string> {
   try {
-    console.log(`🌐 Fetching random ${length}-letter word from API...`);
-    const word = await fetchRandomWord(length);
-    console.log(`✅ Got word from API: ${word}`);
-    return word;
+    console.log(`🌐 Fetching random ${targetLength}-letter word from API...`);
+    const apiWord = await fetchRandomWord(targetLength);
+    console.log(`✅ Got word from API: ${apiWord}`);
+    return apiWord;
   } catch (error) {
     console.log(`⚠️ API failed, using fallback word list...`);
-    const fallbackWord = pickRandomWord(fallbackWords, length);
+    const fallbackWord = pickRandomWord(fallbackWordList, targetLength);
     console.log(`📚 Using fallback word: ${fallbackWord}`);
     return fallbackWord;
   }
 }
 
-export function normalizeGuess(raw: string, length: number): string | null {
-  const g = raw.replace(/[^a-zA-Z]/g, "").toUpperCase();
-  if (g.length !== length) return null;
-  return g;
+export function normalizeGuess(rawInput: string, expectedLength: number): string | null {
+  const cleanedInput = rawInput.replace(/[^a-zA-Z]/g, "").toUpperCase();
+  if (cleanedInput.length !== expectedLength) return null;
+  return cleanedInput;
 }
 
-// Correct Wordle rules with duplicate handling
-export function evalGuess(secret: string, guess: string): LetterEval[] {
-  const result: LetterEval[] = [];
-  const secretChars = secret.split("");
-  const guessChars = guess.split("");
+export function evalGuess(targetWord: string, playerGuess: string): LetterEval[] {
+  const evaluationResult: LetterEval[] = [];
+  const targetLetters = targetWord.split("");
+  const guessLetters = playerGuess.split("");
 
-  // First pass: mark corrects and count remaining letters
-  const remaining: Record<string, number> = {};
-  for (let i = 0; i < secretChars.length; i++) {
-    const s = secretChars[i];
-    const g = guessChars[i];
-    if (g === s) {
-      result[i] = { letter: g, state: "correct" };
+  const remainingLetterCounts: Record<string, number> = {};
+  for (let position = 0; position < targetLetters.length; position++) {
+    const targetLetter = targetLetters[position];
+    const guessedLetter = guessLetters[position];
+    if (guessedLetter === targetLetter) {
+      evaluationResult[position] = { letter: guessedLetter, state: "correct" };
     } else {
-      remaining[s] = (remaining[s] || 0) + 1;
-      result[i] = { letter: g, state: "absent" }; // temp
+      remainingLetterCounts[targetLetter] = (remainingLetterCounts[targetLetter] || 0) + 1;
+      evaluationResult[position] = { letter: guessedLetter, state: "absent" };
     }
   }
-  // Second pass: mark presents
-  for (let i = 0; i < secretChars.length; i++) {
-    if (result[i].state === "correct") continue;
-    const g = guessChars[i];
-    if (remaining[g] > 0) {
-      result[i] = { letter: g, state: "present" };
-      remaining[g] -= 1;
+  
+  for (let position = 0; position < targetLetters.length; position++) {
+    if (evaluationResult[position].state === "correct") continue;
+    const guessedLetter = guessLetters[position];
+    if (remainingLetterCounts[guessedLetter] > 0) {
+      evaluationResult[position] = { letter: guessedLetter, state: "present" };
+      remainingLetterCounts[guessedLetter] -= 1;
     } else {
-      result[i] = { letter: g, state: "absent" };
+      evaluationResult[position] = { letter: guessedLetter, state: "absent" };
     }
   }
-  return result;
+  return evaluationResult;
 }
