@@ -2,15 +2,18 @@
   "name": "tiktok-wordle-server",
   "type": "module",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "node --loader ts-node/esm src/index.ts",
     "build": "tsc && rm -rf public && mkdir -p public && cp -r ../client/dist/* public/",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit",
+    "lint": "echo 'No linter configured for server'"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "tiktok-live-connector": "^1.6.7",
+    "tiktok-live-connector": "^2.0.3",
+    "ts-node": "^10.9.2",
     "ws": "^8.18.0"
   },
   "devDependencies": {

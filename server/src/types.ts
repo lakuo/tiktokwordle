@@ -23,6 +23,9 @@ export interface StateEvent {
   wordLength: number;
   guesses: GuessEvent[];
   scoreboard: Record<string, number>;
+  users: Record<string, { name: string; avatar: string | null }>;
+  roundStartTime: number;
+  roundDuration: number;
   lastWinner?: {
     id: string;
     name: string;
@@ -44,4 +47,10 @@ export interface RoundWonEvent {
   timestamp: number;
 }
 
-export type OutboundMessage = GuessEvent | StateEvent | RoundWonEvent;
+export interface RoundTimeoutEvent {
+  type: "round_timeout";
+  word: string;
+  timestamp: number;
+}
+
+export type OutboundMessage = GuessEvent | StateEvent | RoundWonEvent | RoundTimeoutEvent;
