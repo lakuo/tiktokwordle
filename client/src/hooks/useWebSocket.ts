@@ -76,7 +76,7 @@ export function useWebSocket(): UseWebSocketReturn {
               name: message.winner.name,
               word: message.word
             });
-            setTimeout(() => setWinnerToast(null), 3500);
+            setTimeout(() => setWinnerToast(null), 10000);
           }
 
           if (message.type === "round_timeout") {
@@ -84,7 +84,7 @@ export function useWebSocket(): UseWebSocketReturn {
               name: "Time's up!",
               word: message.word
             });
-            setTimeout(() => setWinnerToast(null), 3500);
+            setTimeout(() => setWinnerToast(null), 10000);
           }
         } catch (error) {
           console.error('Error parsing message:', error);

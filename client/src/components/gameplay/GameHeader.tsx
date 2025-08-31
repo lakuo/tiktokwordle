@@ -4,9 +4,42 @@ interface GameHeaderProps {
   wordLength: number;
   isConnected: boolean;
   timeRemaining: number;
+  gameState?: 'playing' | 'ended_no_winner' | 'ended_with_winner' | 'waiting';
 }
 
-export function GameHeader({ wordLength, isConnected, timeRemaining }: GameHeaderProps) {
+export function GameHeader({ wordLength, isConnected, timeRemaining, gameState }: GameHeaderProps) {
+  const getTimerDisplay = () => {
+    if (!isConnected) return null;
+    
+    if (gameState === 'waiting') {
+      return (
+        <Badge variant="timer">
+          ⏳ Next: {timeRemaining}s
+        </Badge>
+      );
+    }
+    
+    if (gameState === 'ended_with_winner' || gameState === 'ended_no_winner') {
+      return (
+        <Badge variant="timer">
+          🔄 Next: {timeRemaining}s
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge 
+        variant={timeRemaining <= 5 ? 'urgent' : 'timer'}
+        style={{
+          backgroundColor: timeRemaining <= 5 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+          borderColor: timeRemaining <= 5 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)',
+          color: timeRemaining <= 5 ? '#ef4444' : '#3b82f6'
+        }}
+      >
+        ⏱️ {timeRemaining}s
+      </Badge>
+    );
+  };
   return (
     <div className="header">
       <div>
@@ -20,18 +53,7 @@ export function GameHeader({ wordLength, isConnected, timeRemaining }: GameHeade
           {isConnected ? '🟢 Live' : '🔴 Connecting...'}
         </Badge>
         
-        {isConnected && (
-          <Badge 
-            variant={timeRemaining <= 5 ? 'urgent' : 'timer'}
-            style={{
-              backgroundColor: timeRemaining <= 5 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-              borderColor: timeRemaining <= 5 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)',
-              color: timeRemaining <= 5 ? '#ef4444' : '#3b82f6'
-            }}
-          >
-            ⏱️ {timeRemaining}s
-          </Badge>
-        )}
+        {getTimerDisplay()}
       </div>
     </div>
   );

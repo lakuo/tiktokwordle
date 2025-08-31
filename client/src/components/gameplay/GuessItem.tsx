@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { GuessMessage } from '../../types';
 import { GuessRow } from './GuessRow';
 
@@ -8,10 +9,23 @@ interface GuessItemProps {
 
 export function GuessItem({ guess, index }: GuessItemProps) {
   return (
-    <div className="guess-item">
+    <motion.div
+      className="guess-item"
+      initial={{ opacity: 0, x: -20, scale: 0.9 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 20, scale: 0.9 }}
+      transition={{ 
+        duration: 0.4, 
+        delay: index * 0.1,
+        type: "spring",
+        stiffness: 200,
+        damping: 20
+      }}
+      layout
+    >
       <div className="avatar">
         {guess.user.avatar ? (
-          <img src={guess.user.avatar} alt={guess.user.name} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+          <img src={guess.user.avatar} alt={guess.user.name} />
         ) : (
           guess.user.name.charAt(0).toUpperCase()
         )}
@@ -22,6 +36,6 @@ export function GuessItem({ guess, index }: GuessItemProps) {
           <strong>{guess.user.name}</strong> guessed <strong>{guess.guess}</strong>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
