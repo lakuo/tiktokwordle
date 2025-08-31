@@ -1,0 +1,139 @@
+:root {
+  --bg: rgba(0,0,0,0.0);     /* transparent for OBS overlay */
+  --panel: rgba(0,0,0,0.55);
+  --text: #fff;
+  --tile-bg: #222;
+  --tile-absent: #3a3a3c;
+  --tile-present: #b59f3b;
+  --tile-correct: #538d4e;
+  --accent: #66ccff;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  padding: 12px;
+}
+
+.left, .right {
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+}
+
+.small {
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+.guesses {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100% - 30px);
+  overflow: auto;
+}
+
+.guess {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(28px, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.tile {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  padding: 6px 0;
+  border-radius: 4px;
+  background: var(--tile-bg);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+}
+
+.tile.absent { background: var(--tile-absent); }
+.tile.present { background: var(--tile-present); }
+.tile.correct { background: var(--tile-correct); }
+
+.guess-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.scoreboard table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scoreboard th, .scoreboard td {
+  padding: 6px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.scoreboard th {
+  text-align: left;
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+.row-winner {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.winner {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  background: rgba(0,0,0,0.8);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9999;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+}
+
+.winner img {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.winner .name {
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.winner .word {
+  opacity: 0.85;
+  font-size: 12px;
+}
