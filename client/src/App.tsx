@@ -55,29 +55,28 @@ export default function App() {
   return (
     <div className="app">
       <div className="main-container">
-        <GamePanel 
-          wordLength={wordLength}
-          isConnected={isConnected}
-          timeRemaining={timeRemaining}
-          displayedGuesses={displayedGuesses}
-          winnerToast={winnerToast}
-          roundStartTime={roundStartTime}
-          roundDuration={roundDuration}
-          gameState={
-            winnerToast && winnerToast.name !== "Time's up!" ? 'ended_with_winner' : 
-            winnerToast && winnerToast.name === "Time's up!" ? 'ended_no_winner' : 
-            gameTimeRemaining <= 0 && !winnerToast ? 'ended_no_winner' :
-            gameTimeRemaining > 30 ? 'waiting' : 'playing'
-          }
-          targetWord={winnerToast?.word}
-          nextRoundIn={nextRoundCountdown}
-        />
-        
-        <ScorePanel 
-          scoreboard={scoreboard}
-          users={users}
-          lastWinner={lastWinner}
-        />
+        <div className="mobile-layout">
+          <GamePanel 
+            wordLength={wordLength}
+            isConnected={isConnected}
+            timeRemaining={timeRemaining}
+            displayedGuesses={displayedGuesses}
+            winnerToast={winnerToast}
+            roundStartTime={roundStartTime}
+            roundDuration={roundDuration}
+            gameState={
+              winnerToast && winnerToast.name !== "Time's up!" ? 'ended_with_winner' : 
+              winnerToast && winnerToast.name === "Time's up!" ? 'ended_no_winner' : 
+              gameTimeRemaining <= 0 && !winnerToast ? 'ended_no_winner' :
+              gameTimeRemaining > 30 ? 'waiting' : 'playing'
+            }
+            targetWord={winnerToast?.word}
+            nextRoundIn={nextRoundCountdown}
+            scoreboard={scoreboard}
+            users={users}
+            lastWinner={lastWinner}
+          />
+        </div>
       </div>
 
       <style>{`
