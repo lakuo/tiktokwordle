@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test v2.0 Algorithm</title>
+</head>
+<body>
+    <h1>Testing Spending Decision Algorithm v2.0</h1>
+    
+    <h2>Example: Interior Car Detail $180</h2>
+    <div id="test-results"></div>
+    
+    <script type="module">        
+        // Expected results according to spec:
+        // P_t = 180 * 1.08625 = 195.53
+        // H_eff = 3 * 0.7 * 0.6 = 1.26
+        // PV_time ≈ 1.26 * 60 * 1 = 75.6
+        // Longevity_adj = 0 (since Y=0)
+        // VP* = 1.2 * [3*3 + 2*1.26 + 0.05*1 + 0 + 1 - 2*0 - 0] = 1.2 * 12.57 = 15.08
+        // EC* = 195.53 - 0 + 0 - 75.6 = 119.93
+        // CPP = 119.93 / 15.08 = 7.95
+        // Payback_months = 195.53 / (1.26 * 60) = 2.6
+        
+        const expectedResults = {
+            P_t: 195.53,
+            H_eff: 1.26,
+            PV_time: 75.6,
+            VP_star: 15.08,
+            EC_star: 119.93,
+            CPP: 7.95,
+            Payback_months: 2.6,
+            decision: 'APPROVE'
+        };
+        
+        document.getElementById('test-results').innerHTML = `
+            <h3>Expected Results for Interior Car Detail $180:</h3>
+            <ul>
+                <li>P_t (Price + Tax): $${expectedResults.P_t}</li>
+                <li>H_eff (Effective Hours): ${expectedResults.H_eff}h/month</li>
+                <li>PV_time (Time Value): $${expectedResults.PV_time}</li>
+                <li>VP* (Value Points): ${expectedResults.VP_star}</li>
+                <li>EC* (Effective Cost): $${expectedResults.EC_star}</li>
+                <li>CPP (Cost per Point): $${expectedResults.CPP}</li>
+                <li>Payback: ${expectedResults.Payback_months} months</li>
+                <li>Decision: ${expectedResults.decision}</li>
+            </ul>
+            
+            <p><strong>Test Status:</strong> Manual verification required in browser app</p>
+            <p><strong>Test URL:</strong> <a href="http://localhost:5174" target="_blank">Open App</a></p>
+            
+            <h3>Test Instructions:</h3>
+            <ol>
+                <li>Fill in: Interior car detail, TimeSaver category, $180 price</li>
+                <li>Set tax rate to 8.625%</li>
+                <li>Current hours: 3, Hours saved: 3</li>
+                <li>Probability of use: 70%, Probability redeploy: 60%</li>
+                <li>Days per month: 1, Years: 0</li>
+                <li>Quality of life: 3, Resale ease: 1</li>
+                <li>Regret risk: 0, Complexity: 0</li>
+                <li>Check if results match expected values above</li>
+            </ol>
+        `;
+    </script>
+</body>
+</html>
